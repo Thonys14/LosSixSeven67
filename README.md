@@ -133,3 +133,4 @@ Las características descritas en este documento representan la propuesta inicia
 * **Jhan Sánchez**
 * **Anthony Santamaría**
 * **Steven Batista**
+* **Maria Gonzales**
