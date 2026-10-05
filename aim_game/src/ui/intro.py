@@ -8,7 +8,7 @@ import pygame
 class IntroPartida:
     """Presenta al robot y una cuenta atrás antes de empezar el temporizador."""
 
-    DURACION = 3.2
+    DURACION = 10.2
 
     def __init__(self, tamano, imagen_personaje, fuente_titulo, fuente_texto):
         self.ancho, self.alto = tamano
@@ -57,7 +57,7 @@ class IntroPartida:
             "Preparando objetivos...", True, (120, 200, 235)
         )
         self.lienzo.blit(texto, texto.get_rect(center=(self.ancho // 2, 355)))
-        numero = max(1, 3 - int(self.edad))
+        numero = max(1, 10 - int(self.edad))
         cuenta = self.fuente_titulo.render(str(numero), True, (55, 220, 255))
         cuenta = pygame.transform.scale(
             cuenta, (cuenta.get_width() * 2, cuenta.get_height() * 2)

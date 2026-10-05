@@ -1,4 +1,4 @@
-"""Proyectiles decorativos, impactos y puntos flotantes."""
+"""[VISUAL]Proyectiles decorativos, impactos y puntos flotantes."""
 
 import pygame
 

@@ -2,7 +2,7 @@ import pygame
 import sys
 import os
 
-from src.ui.menu import MenuPrincipal #clase menu
+from src.ui.menu import MenuPrincipal, MenuPausa, MenuResultados #clase menu
 from src.player.shooter import Crosshair #puntero
 from src.targets.rings import Diana #las dianas xd
 from src.player.character import Personaje
@@ -15,7 +15,7 @@ ANCHO, ALTO = 800, 600
 FPS = 60
 
 def main():
-    # [NUEVO AUDIO] Forzar inicialización limpia para evitar errores en Windows
+    # [AUDIO] Forzar inicialización limpia para evitar errores en Windows
     pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.init()
     pygame.mixer.init() 
@@ -29,14 +29,14 @@ def main():
     except FileNotFoundError:
         print(f"NO ESTA EL ICONO")
 
-    # [NUEVO AUDIO] Cargar rutas de audio correctamente desde la carpeta assets
+    # [AUDIO] Cargar rutas de audio correctamente desde la carpeta assets
     ruta_musica_juego = os.path.join(directorio_base,  "sounds", "training_song.mp3")
     ruta_musica_lobby = os.path.join(directorio_base,  "sounds", "lobby_song.mp3")
     ruta_sonido_fin = os.path.join(directorio_base, "sounds", "finish_effect.wav")
     ruta_sonido_disparo = os.path.join(directorio_base, "sounds", "shoot_effect.wav")
     ruta_sonido_acierto = os.path.join(directorio_base, "sounds", "blanco_effect.wav")
 
-    # [NUEVO AUDIO] Instanciar los efectos de sonido y ajustar volumen
+    # [AUDIO] Instanciar los efectos de sonido y ajustar volumen
     try:
         sonido_fin = pygame.mixer.Sound(ruta_sonido_fin)
         sonido_disparo = pygame.mixer.Sound(ruta_sonido_disparo)
@@ -83,11 +83,47 @@ def main():
 
     tiempo_limite = 60 #dura la partida
     tiempo_inicio = 0 #inicia la partida justo cuando se da en el botón JUGAR
+    tiempo_inicio_pausa = 0
 
     #instancia de menú
     menu_principal = MenuPrincipal(ANCHO,ALTO,directorio_base)
-
+    menu_principal = MenuPrincipal(ANCHO, ALTO, directorio_base)
+    menu_pausa = MenuPausa(ANCHO, ALTO, directorio_base) # <-- NUEVO
     estado_actual = "MENU"
+
+    #variables v4
+
+    #crosshair
+    ruta_sprite_crosshair = os.path.join(directorio_base,"assets","gfx","crosshair.png")
+    try:
+        imagen_crosshair = pygame.image.load(ruta_sprite_crosshair).convert()
+        imagen_crosshair.set_colorkey((0, 0, 0))
+    except FileNotFoundError:
+        print(f"No se encontró el sprite 'crosshair.png'")
+        imagen_crosshair = None
+
+    jugador = Crosshair(imagen_crosshair)
+
+    #bg in-game
+    ruta_fondo = os.path.join(os.path.dirname(__file__),"assets","gfx", "background.jpg")
+    try:
+        fondo = pygame.image.load(ruta_fondo).convert()
+        fondo = pygame.transform.scale(fondo,(ANCHO,ALTO))
+    except:
+        print(f"Error: No se encontró la imagen en {ruta_fondo}")
+        fondo = pygame.Surface((ANCHO,ALTO))
+        fondo.fill((20,30,40))
+
+    #nuevas variables para la pantalla de resultados
+    disparos_totales = 0
+    aciertos = 0 
+    fallos = 0
+
+    menu_principal = MenuPrincipal(ANCHO, ALTO, directorio_base)
+    menu_pausa = MenuPausa(ANCHO, ALTO, directorio_base) 
+    menu_resultados = MenuResultados(ANCHO, ALTO, directorio_base) #
+
+    ###############variables_v4###################3
 
     while True:
         dt = reloj.get_time() / 1000.0
@@ -135,13 +171,21 @@ def main():
 
             #al dar ESC, regresa al menu y limpia la puntuacion anterior
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_ESCAPE and estado_actual == "RESULTADOS":
-                    estado_actual = "MENU"
-                    puntuacion_temporal = 0
-                    diana_actual = None
-                    efectos.limpiar()
+                if evento.key == pygame.K_ESCAPE:
+                    if estado_actual == "JUEGO":
+                        estado_actual = "PAUSA"
+                        tiempo_inicio_pausa = pygame.time.get_ticks()
+                    elif estado_actual == "PAUSA":
+                        estado_actual = "JUEGO"
+                        tiempo_en_pausa = pygame.time.get_ticks() - tiempo_inicio_pausa #quitar pausa
+                        tiempo_inicio += tiempo_en_pausa
+                    elif estado_actual == "RESULTADOS":
+                        estado_actual = "MENU"
+                        puntuacion_temporal = 0
+                        diana_actual = None
+                        efectos.limpiar()
                     
-                    # [NUEVO AUDIO] Detener sonido residual y volver a la música del lobby
+                    # [AUDIO] Detener sonido residual y volver a la música del lobby
                     pygame.mixer.music.stop()
                     try:
                         pygame.mixer.music.load(ruta_musica_lobby)
@@ -154,7 +198,7 @@ def main():
                     estado_actual = "JUEGO"
                     tiempo_inicio = pygame.time.get_ticks() #se reinicia el tiempo del contador
                     efectos.limpiar()
-                    # [NUEVO AUDIO] Iniciar música de entrenamiento si se salta la cinemática
+                    # [AUDIO] Iniciar música de entrenamiento si se salta la cinemática
                     try:
                         pygame.mixer.music.load(ruta_musica_juego)
                         pygame.mixer.music.play(-1)
@@ -169,18 +213,22 @@ def main():
                     and diana_actual is not None
                     and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000
                 ):
-                    # [NUEVO AUDIO] Reproducir sonido de disparo
+                    # [AUDIO] sonido de disparo
                     if sonido_disparo:
                         sonido_disparo.play()
                         
                     personaje.disparar()
                     efectos.disparar(personaje.origen_disparo, evento.pos)
+
+                    disparos_totales +=1 #contar el disparo
                     puntos = 0
+
                     if diana_actual.esta_visible:
                         puntos = jugador.disparar(
                             diana_actual.posicion, diana_actual.radio, evento.pos
                         )
                     if puntos > 0:
+                        aciertos += 1 # contar el acierto
                         puntuacion_temporal += puntos
                         efectos.registrar_acierto(diana_actual, evento.pos, puntos)
                         print(f"¡PIU! ¡PIU! +{puntos} | Total: {puntuacion_temporal}")
@@ -192,6 +240,7 @@ def main():
                         #nueva diana al acertar
                         diana_actual = Diana(ANCHO,ALTO)
                     else:
+                        fallos += 1 # contar el fallo
                         print("¡FALLASTE, JAJA")
         
                 # logica de control de acciones MENU
@@ -206,6 +255,44 @@ def main():
                 elif accion == "SALIR":
                     pygame.quit()
                     sys.exit()
+            if estado_actual == "PAUSA":
+                accion_pausa = menu_pausa.manejar_evento(evento)
+                if accion_pausa == "CONTINUAR":
+                    estado_actual = "JUEGO"
+                    tiempo_inicio += pygame.time.get_ticks() - tiempo_inicio_pausa
+                elif accion_pausa == "SALIR_MENU":
+                    estado_actual = "MENU"
+                    puntuacion_temporal = disparos_totales = aciertos = fallos = 0
+                    diana_actual = None
+                    efectos.limpiar()
+                    pygame.mixer.music.stop()
+                    menu_principal.reproducir_musica_fondo()
+            # Lógica de control de acciones RESULTADOS
+            if estado_actual == "RESULTADOS":
+                accion_resultados = menu_resultados.manejar_evento(evento)
+                if accion_resultados == "REINICIAR":
+                    estado_actual = "JUEGO"
+                    puntuacion_temporal = disparos_totales = aciertos = fallos = 0
+                    tiempo_inicio = pygame.time.get_ticks()
+                    diana_actual = None
+                    efectos.limpiar()
+                    
+                    pygame.mixer.music.stop()
+                    try:
+                        pygame.mixer.music.load(ruta_musica_juego)
+                        pygame.mixer.music.play(-1)
+                        pygame.mixer.music.set_volume(0.5)
+                    except Exception:
+                        pass
+                        
+                elif accion_resultados == "SALIR":
+                    estado_actual = "MENU"
+                    puntuacion_temporal = disparos_totales = aciertos = fallos = 0
+                    diana_actual = None
+                    efectos.limpiar()
+                    
+                    pygame.mixer.music.stop()
+                    menu_principal.reproducir_musica_fondo()
 
         #control de renderizado de estado MENU
         if estado_actual == "MENU":
@@ -216,7 +303,11 @@ def main():
         # control de renderizado de estado JUEGO
         elif estado_actual == "JUEGO":
             pygame.mouse.set_visible(False) #aquí se oculta el mouse, después crosshair
-            pantalla.fill((20, 30, 40))
+
+            if fondo is None:
+                pantalla.fill((20, 30, 40))
+            else:
+                pantalla.blit(fondo,(0, 0))
 
             #logica del temporizador
             tiempo_actual = pygame.time.get_ticks()
@@ -227,7 +318,7 @@ def main():
             if tiempo_restante == 0 and estado_actual != "RESULTADOS":
                 estado_actual = "RESULTADOS"
                 efectos.limpiar()
-                # [NUEVO AUDIO] Respaldo: Detener música y reproducir sonido de fin
+                # [AUDIO] respaldo: Detener música y reproducir sonido de fin
                 pygame.mixer.music.stop()
                 if sonido_fin:
                     sonido_fin.play()
@@ -263,19 +354,47 @@ def main():
             jugador.actualizar()
             jugador.dibujar(pantalla)
 
-        #renderizado de RESULTADOS
+        # renderizado de RESULTADOS
         elif estado_actual == "RESULTADOS":
-            pygame.mouse.set_visible(True) #devuelvo el cursor de windows
-            pantalla.fill((15, 20, 30)) #fondo temporal
+            pygame.mouse.set_visible(True) 
+            
+            precision = int((aciertos / disparos_totales) * 100) if disparos_totales > 0 else 0
+            # Formato de tiempo (ej. "01:00")
+            minutos = tiempo_limite // 60
+            segundos = tiempo_limite % 60
+            tiempo_formateado = f"{minutos:02d}:{segundos:02d}"
 
-            #declaración de renders de texto
-            texto_fin = fuente_resultados.render("Se terminó el tiempo. Veamos tu puntuación.", True, (255, 100, 100))
-            texto_final_puntos = fuente_resultados.render (f"Puntuación Final: {puntuacion_temporal}", True, (100, 255, 100))
-            texto_salir = fuente_resultados.render("Presiona ESC para salir", True, (150, 150, 150))
-            #mostrar los textos
-            pantalla.blit(texto_fin, texto_fin.get_rect(center=(ANCHO//2,ALTO//2 - 60)))
-            pantalla.blit(texto_final_puntos, texto_final_puntos.get_rect(center=(ANCHO//2,ALTO//2)))
-            pantalla.blit(texto_salir, texto_salir.get_rect(center=(ANCHO//2,ALTO//2 + 80)))
+            # Empaquetamos los datos para enviarlos a la clase visual
+            stats_partida = {
+                'puntuacion': puntuacion_temporal,
+                'tiempo': tiempo_formateado,
+                'aciertos': aciertos,
+                'fallos': fallos,
+                'precision': precision
+            }
+            
+            menu_resultados.dibujar(pantalla, stats_partida)
+
+        #renderizado de PAUSA
+        elif estado_actual == "PAUSA":
+            pygame.mouse.set_visible(True)
+
+            #dibujar pantalla de juego exactamente igual pero no actualizamos
+            if fondo is None: pantalla.fill ((20, 30, 40))
+            else: pantalla.blit(fondo,(0, 0))
+            efectos.dibujar_dianas_salientes(pantalla)
+            if diana_actual: diana_actual.dibujar(pantalla)
+            personaje.dibujar(pantalla)
+            efectos.dibujar(pantalla)
+
+            #superposición color negro con opacidad reducida
+            velo = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+            velo.fill((0, 0, 0, 180))
+            pantalla.blit(velo, (0, 0))
+
+            menu_pausa.dibujar(pantalla)
+
+            #menu uww
 
         # 3. actualizar la pantalla en base al framerate
         controles_ventana.dibujar(pantalla)
