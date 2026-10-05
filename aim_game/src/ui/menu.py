@@ -20,6 +20,33 @@ class MenuPrincipal:
         self.rect_play = pygame.Rect(self.ancho//2 - 100, 380, 200, 60)
         self.rect_quit = pygame.Rect(self.ancho//2 - 100, 460, 200, 60)
 
+        # [NUEVO AUDIO] Rutas de los sonidos usando la carpeta assets
+        ruta_musica_lobby = os.path.join(directorio_base, "sounds", "lobby_song.mp3")
+        ruta_sonido_boton = os.path.join(directorio_base, "sounds", "ui_effect.wav")
+
+        # [NUEVO AUDIO] Cargar y reproducir la música de fondo del menú
+        try:
+            pygame.mixer.music.load(ruta_musica_lobby)
+            pygame.mixer.music.play(-1) # El -1 la reproduce en bucle infinito
+            pygame.mixer.music.set_volume(0.6) # Ajusta el volumen si la música es muy fuerte
+        except Exception as e:
+            print(f"Error cargando música del menú: {e}")
+
+        # [NUEVO AUDIO] Cargar el efecto de sonido para los botones
+        try:
+            self.sonido_boton = pygame.mixer.Sound(ruta_sonido_boton)
+            self.sonido_boton.set_volume(1.0)
+        except Exception as e:
+            print(f"Error cargando sonido de botón: {e}")
+            self.sonido_boton = None
+
+    def reproducir_musica_fondo(self):
+        # [NUEVO AUDIO] Método de apoyo por si necesitas reiniciar la música del menú luego de jugar
+        try:
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
+
     def dibujar(self,pantalla):
         #Fondo oscuro porque no hay presupuesto (se agregará un fondito, calma, primero lo esencial).
         pantalla.fill((15,20,30))
@@ -65,7 +92,13 @@ class MenuPrincipal:
         """Revisa si el usuario hizo clic en algún botón y retorna la acción"""
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             if self.rect_play.collidepoint(evento.pos):
+                # [NUEVO AUDIO] Reproducir sonido de interfaz
+                if self.sonido_boton:
+                    self.sonido_boton.play()
                 return "JUGAR"
             elif self.rect_quit.collidepoint(evento.pos):
+                # [NUEVO AUDIO] Reproducir sonido de interfaz
+                if self.sonido_boton:
+                    self.sonido_boton.play()
                 return "SALIR"
         return None
