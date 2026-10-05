@@ -2,18 +2,27 @@ import pygame
 import pygame.math as math
 
 class Crosshair:
-    def __init__(self):
+    def __init__(self, sprite_imagen = None):
         self.color = (0, 255, 0) #verde fosforescente
         self.posicion = (0, 0)
+        self.sprite = sprite_imagen
+
 
     def actualizar(self):
         #mismas coordenadas del mouse de windows
         self.posicion = pygame.mouse.get_pos()
 
     def dibujar(self, pantalla): #render del mouse en pantalla
-        pygame.draw.circle(pantalla, self.color, self.posicion, 10, 2)
-        pygame.draw.line(pantalla, self.color, (self.posicion[0] - 15, self.posicion[1]), (self.posicion[0] + 15, self.posicion[1]), 2)
-        pygame.draw.line(pantalla, self.color, (self.posicion[0], self.posicion[1]- 15), (self.posicion[0], self.posicion[1] + 15), 2)
+        if self.sprite:
+            #centro
+            self.sprite = pygame.transform.scale(self.sprite,(64,64))
+            rect_sprite = self.sprite.get_rect(center=self.posicion)
+            pantalla.blit(self.sprite, rect_sprite)
+        else:
+            x, y = self.posicion
+            pygame.draw.line(pantalla, (0, 255, 0), (x -15, y), (x + 15, y), 2)
+            pygame.draw.line(pantalla, (0, 255, 0), (x, y - 15), (x, y + 15), 2)
+            pygame.draw.circle(pantalla, self.color, self.posicion, 10, 2)
 
     def disparar(self, blanco_centro, radio_maximo, posicion_clic=None):
 

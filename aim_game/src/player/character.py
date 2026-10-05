@@ -6,7 +6,7 @@ import pygame
 class Personaje:
     """Carga un sprite una vez y ofrece el origen de sus proyectiles."""
 
-    def __init__(self, ancho, alto, ruta_imagen, alto_sprite=104):
+    def __init__(self, ancho, alto, ruta_imagen, alto_sprite=135):
         imagen = pygame.image.load(ruta_imagen).convert_alpha()
         limites = imagen.get_bounding_rect(min_alpha=128)
         if limites.width == 0 or limites.height == 0:
