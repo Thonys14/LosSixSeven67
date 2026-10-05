@@ -5,6 +5,10 @@ import os
 from src.ui.menu import MenuPrincipal #clase menu
 from src.player.shooter import Crosshair #puntero
 from src.targets.rings import Diana #las dianas xd
+from src.player.character import Personaje
+from src.effects.feedback import EfectosVisuales
+from src.ui.window_controls import ControlesVentana
+from src.ui.intro import IntroPartida
 
 # config base / es más fácil de argumentar
 ANCHO, ALTO = 800, 600
@@ -26,7 +30,7 @@ def main():
         print(f"NO ESTA EL ICONO")
 
     #display
-    pantalla = pygame.display.set_mode((ANCHO, ALTO))
+    pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.NOFRAME)
     pygame.display.set_caption("aim-trainer-game")
 
     #fps
@@ -48,6 +52,15 @@ def main():
         fuente_ui = pygame.font.Font(None, 30)
         fuente_resultados = pygame.font.Font(None, 42)
 
+    ruta_personaje = os.path.join(directorio_base, "assets", "gfx", "robot.png")
+    personaje = Personaje(ANCHO, ALTO, ruta_personaje)
+    area_textos = pygame.Rect(8, 70, ANCHO - 16, ALTO - 195)
+    efectos = EfectosVisuales(fuente_resultados, area_textos)
+    controles_ventana = ControlesVentana(ANCHO)
+    intro = IntroPartida(
+        (ANCHO, ALTO), personaje.imagen, fuente_resultados, fuente_ui
+    )
+
     tiempo_limite = 60 #dura la partida
     tiempo_inicio = 0 #inicia la partida justo cuando se da en el botón JUGAR
 
@@ -59,6 +72,20 @@ def main():
 
 
     while True:
+        dt = reloj.get_time() / 1000.0
+        efectos.actualizar(dt)
+        personaje.actualizar(dt)
+        if estado_actual == "CINEMATICA":
+            intro.actualizar(dt)
+            if intro.terminada:
+                estado_actual = "JUEGO"
+                tiempo_inicio = pygame.time.get_ticks()
+                efectos.limpiar()
+        if estado_actual == "JUEGO":
+            transcurrido = pygame.time.get_ticks() - tiempo_inicio
+            if transcurrido >= tiempo_limite * 1000:
+                estado_actual = "RESULTADOS"
+                efectos.limpiar()
         #gestión de entradas de usuario
 
         #evento de menu
@@ -67,23 +94,44 @@ def main():
                 pygame.quit()
                 sys.exit()
 
+            accion_ventana = controles_ventana.manejar_evento(evento)
+            if accion_ventana == "SALIR":
+                pygame.quit()
+                sys.exit()
+            if accion_ventana == "MINIMIZAR":
+                pygame.display.iconify()
+                continue
+
             #al dar ESC, regresa al menu y limpia la puntuacion anterior
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE and estado_actual == "RESULTADOS":
                     estado_actual = "MENU"
                     puntuacion_temporal = 0
                     diana_actual = None
+                    efectos.limpiar()
 
                 elif evento.key == pygame.K_SPACE and estado_actual == "CINEMATICA":    #cuando cambia de CINEMATICA a JUEGO
                     estado_actual = "JUEGO"
                     tiempo_inicio = pygame.time.get_ticks() #se reinicia el tiempo del contador
+                    efectos.limpiar()
         
             #evento de clic in-game
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                if estado_actual == "JUEGO" and diana_actual is not None:
-                    puntos = jugador.disparar(diana_actual.posicion, diana_actual.radio)
+                if (
+                    estado_actual == "JUEGO"
+                    and diana_actual is not None
+                    and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000
+                ):
+                    personaje.disparar()
+                    efectos.disparar(personaje.origen_disparo, evento.pos)
+                    puntos = 0
+                    if diana_actual.esta_visible:
+                        puntos = jugador.disparar(
+                            diana_actual.posicion, diana_actual.radio, evento.pos
+                        )
                     if puntos > 0:
                         puntuacion_temporal += puntos
+                        efectos.registrar_acierto(diana_actual, evento.pos, puntos)
                         print(f"¡PIU! ¡PIU! +{puntos} | Total: {puntuacion_temporal}")
 
                         #nueva diana al acertar
@@ -98,6 +146,7 @@ def main():
 
                 accion = menu_principal.manejar_evento(evento)
                 if accion == "JUGAR":
+                    intro.reiniciar()
                     estado_actual = "CINEMATICA"
                 elif accion == "SALIR":
                     pygame.quit()
@@ -107,7 +156,7 @@ def main():
         if estado_actual == "MENU":
             menu_principal.dibujar(pantalla)
         elif estado_actual == "CINEMATICA":
-            pantalla.fill((20,20,20))
+            intro.dibujar(pantalla)
             #imagenes xd
         # control de renderizado de estado JUEGO
         elif estado_actual == "JUEGO":
@@ -122,12 +171,17 @@ def main():
             #entonces si el reloj llega a cero hay que forzar el estado 'resultado'
             if tiempo_restante == 0:
                 estado_actual = "RESULTADOS"
+                efectos.limpiar()
 
             #Si no hay diana, creamos la primera
             if diana_actual is None:
                 diana_actual = Diana(ANCHO, ALTO)
             #render de entidades
+            efectos.dibujar_dianas_salientes(pantalla)
+            diana_actual.actualizar(dt)
             diana_actual.dibujar(pantalla)
+            personaje.dibujar(pantalla)
+            efectos.dibujar(pantalla)
 
             #renderizado de interfaz in-game
             #render del texto: Puntos
@@ -141,8 +195,8 @@ def main():
             texto_tiempo_sombra = fuente_ui.render(f"Tiempo: {tiempo_restante}s", True, (0, 0, 0))
             texto_tiempo = fuente_ui.render(f"Tiempo: {tiempo_restante}s", True, color_tiempo)
 
-            rect_tiempo = texto_tiempo.get_rect(topright=(ANCHO - 20, 20))
-            rect_sombra = texto_tiempo_sombra.get_rect(topright=(ANCHO - 18, 22))
+            rect_tiempo = texto_tiempo.get_rect(topright=(ANCHO - 96, 20))
+            rect_sombra = texto_tiempo_sombra.get_rect(topright=(ANCHO - 94, 22))
 
             pantalla.blit(texto_tiempo_sombra, rect_sombra)
             pantalla.blit(texto_tiempo, rect_tiempo)
@@ -184,6 +238,7 @@ def main():
             
             """
         # 3. actualizar la pantalla en base al framerate
+        controles_ventana.dibujar(pantalla)
         pygame.display.flip()
         reloj.tick(FPS)
 

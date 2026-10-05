@@ -4,7 +4,7 @@ import pygame.math as math
 class Crosshair:
     def __init__(self):
         self.color = (0, 255, 0) #verde fosforescente
-        self.position = (0, 0)
+        self.posicion = (0, 0)
 
     def actualizar(self):
         #mismas coordenadas del mouse de windows
@@ -15,9 +15,10 @@ class Crosshair:
         pygame.draw.line(pantalla, self.color, (self.posicion[0] - 15, self.posicion[1]), (self.posicion[0] + 15, self.posicion[1]), 2)
         pygame.draw.line(pantalla, self.color, (self.posicion[0], self.posicion[1]- 15), (self.posicion[0], self.posicion[1] + 15), 2)
 
-    def disparar(self, blanco_centro, radio_maximo):
+    def disparar(self, blanco_centro, radio_maximo, posicion_clic=None):
 
-        vector_clic = math.Vector2(self.posicion)       #ubicar la posicion del clic
+        posicion = self.posicion if posicion_clic is None else posicion_clic
+        vector_clic = math.Vector2(posicion)  # Coordenadas reales del evento de clic.
         vector_blanco = math.Vector2(blanco_centro)     #ubicar la posicion del blanco
 
         distancia = vector_clic.distance_to(vector_blanco) #calcular la distancia entre ambos usando cálculo euclidiano
