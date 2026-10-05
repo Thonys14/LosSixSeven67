@@ -14,11 +14,11 @@ from src.ui.intro import IntroPartida
 ANCHO, ALTO = 800, 600
 FPS = 60
 
-
-
-
 def main():
+    # [NUEVO AUDIO] Forzar inicialización limpia para evitar errores en Windows
+    pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.init()
+    pygame.mixer.init() 
 
     #icono    
     directorio_base = os.path.dirname(__file__)
@@ -28,6 +28,26 @@ def main():
         pygame.display.set_icon(icono) #ícono se muestra
     except FileNotFoundError:
         print(f"NO ESTA EL ICONO")
+
+    # [NUEVO AUDIO] Cargar rutas de audio correctamente desde la carpeta assets
+    ruta_musica_juego = os.path.join(directorio_base,  "sounds", "training_song.mp3")
+    ruta_musica_lobby = os.path.join(directorio_base,  "sounds", "lobby_song.mp3")
+    ruta_sonido_fin = os.path.join(directorio_base, "sounds", "finish_effect.wav")
+    ruta_sonido_disparo = os.path.join(directorio_base, "sounds", "shoot_effect.wav")
+    ruta_sonido_acierto = os.path.join(directorio_base, "sounds", "blanco_effect.wav")
+
+    # [NUEVO AUDIO] Instanciar los efectos de sonido y ajustar volumen
+    try:
+        sonido_fin = pygame.mixer.Sound(ruta_sonido_fin)
+        sonido_disparo = pygame.mixer.Sound(ruta_sonido_disparo)
+        sonido_acierto = pygame.mixer.Sound(ruta_sonido_acierto)
+        
+        sonido_fin.set_volume(1.0)
+        sonido_disparo.set_volume(1.0)
+        sonido_acierto.set_volume(1.0)
+    except Exception as e:
+        print(f"Advertencia: Faltan archivos de sonido o hubo un error -> {e}")
+        sonido_fin = sonido_disparo = sonido_acierto = None
 
     #display
     pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.NOFRAME)
@@ -69,8 +89,6 @@ def main():
 
     estado_actual = "MENU"
 
-
-
     while True:
         dt = reloj.get_time() / 1000.0
         efectos.actualizar(dt)
@@ -81,11 +99,24 @@ def main():
                 estado_actual = "JUEGO"
                 tiempo_inicio = pygame.time.get_ticks()
                 efectos.limpiar()
+                # [NUEVO AUDIO] Iniciar música de entrenamiento
+                try:
+                    pygame.mixer.music.load(ruta_musica_juego)
+                    pygame.mixer.music.play(-1)
+                    pygame.mixer.music.set_volume(0.5) # Baja el volumen un poco para oír disparos
+                except Exception as e:
+                    print(f"Error reproduciendo música: {e}")
+
         if estado_actual == "JUEGO":
             transcurrido = pygame.time.get_ticks() - tiempo_inicio
             if transcurrido >= tiempo_limite * 1000:
                 estado_actual = "RESULTADOS"
                 efectos.limpiar()
+                # [NUEVO AUDIO] Detener música y reproducir sonido de fin
+                pygame.mixer.music.stop()
+                if sonido_fin:
+                    sonido_fin.play()
+
         #gestión de entradas de usuario
 
         #evento de menu
@@ -109,11 +140,27 @@ def main():
                     puntuacion_temporal = 0
                     diana_actual = None
                     efectos.limpiar()
+                    
+                    # [NUEVO AUDIO] Detener sonido residual y volver a la música del lobby
+                    pygame.mixer.music.stop()
+                    try:
+                        pygame.mixer.music.load(ruta_musica_lobby)
+                        pygame.mixer.music.play(-1)
+                        pygame.mixer.music.set_volume(0.6)
+                    except Exception as e:
+                        pass
 
                 elif evento.key == pygame.K_SPACE and estado_actual == "CINEMATICA":    #cuando cambia de CINEMATICA a JUEGO
                     estado_actual = "JUEGO"
                     tiempo_inicio = pygame.time.get_ticks() #se reinicia el tiempo del contador
                     efectos.limpiar()
+                    # [NUEVO AUDIO] Iniciar música de entrenamiento si se salta la cinemática
+                    try:
+                        pygame.mixer.music.load(ruta_musica_juego)
+                        pygame.mixer.music.play(-1)
+                        pygame.mixer.music.set_volume(0.5)
+                    except Exception as e:
+                        print(f"Error reproduciendo música: {e}")
         
             #evento de clic in-game
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
@@ -122,6 +169,10 @@ def main():
                     and diana_actual is not None
                     and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000
                 ):
+                    # [NUEVO AUDIO] Reproducir sonido de disparo
+                    if sonido_disparo:
+                        sonido_disparo.play()
+                        
                     personaje.disparar()
                     efectos.disparar(personaje.origen_disparo, evento.pos)
                     puntos = 0
@@ -133,6 +184,10 @@ def main():
                         puntuacion_temporal += puntos
                         efectos.registrar_acierto(diana_actual, evento.pos, puntos)
                         print(f"¡PIU! ¡PIU! +{puntos} | Total: {puntuacion_temporal}")
+                        
+                        # [NUEVO AUDIO] Reproducir sonido de impacto al acertar
+                        if sonido_acierto:
+                            sonido_acierto.play()
 
                         #nueva diana al acertar
                         diana_actual = Diana(ANCHO,ALTO)
@@ -169,9 +224,13 @@ def main():
             tiempo_restante = max(0, tiempo_limite - segundos_transcurridos)
 
             #entonces si el reloj llega a cero hay que forzar el estado 'resultado'
-            if tiempo_restante == 0:
+            if tiempo_restante == 0 and estado_actual != "RESULTADOS":
                 estado_actual = "RESULTADOS"
                 efectos.limpiar()
+                # [NUEVO AUDIO] Respaldo: Detener música y reproducir sonido de fin
+                pygame.mixer.music.stop()
+                if sonido_fin:
+                    sonido_fin.play()
 
             #Si no hay diana, creamos la primera
             if diana_actual is None:
@@ -218,31 +277,10 @@ def main():
             pantalla.blit(texto_final_puntos, texto_final_puntos.get_rect(center=(ANCHO//2,ALTO//2)))
             pantalla.blit(texto_salir, texto_salir.get_rect(center=(ANCHO//2,ALTO//2 + 80)))
 
-                
-            """      
-            # 2. por temas de desarrollo cambio de cinematicas
-            if estado_actual == "CINEMATICA":
-            # fondo para saber que es cinematica time
-            pantalla.fill((20, 20, 20)) 
-            # TODO: Añadir lógica para rotar las imágenes de IbisPaint
-            
-            elif estado_actual == "JUEGO":
-            # fondo para saber que es el juego
-            pantalla.fill((200, 220, 240)) 
-            # TODO: Actualizar entidades, generar blancos, calcular vectores
-            
-            elif estado_actual == "RESULTADOS":
-            # fondo para distinguir el game over
-            pantalla.fill((100, 50, 50)) 
-            # TODO: Mostrar puntuación final 
-            
-            """
         # 3. actualizar la pantalla en base al framerate
         controles_ventana.dibujar(pantalla)
         pygame.display.flip()
         reloj.tick(FPS)
-
-        
 
 if __name__ == "__main__":
     main()
