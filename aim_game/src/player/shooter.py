@@ -1,7 +1,8 @@
 """Módulo encargado de gestionar el puntero del jugador y calcular la precisión de impacto."""
 
 import pygame
-import pygame.math as math
+from pygame import math
+
 
 class Crosshair:
 
