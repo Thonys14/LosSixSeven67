@@ -1,86 +1,39 @@
-#  Aim Trainer 2D
+# Aim game 2D 🎯
 
-Videojuego 2D desarrollado en **Python** utilizando principalmente la biblioteca **Pygame**, como proyecto para la asignatura **Desarrollo de Software 8**.
+## 1. Problema y Usuarios
+**Problema:** Muchos jugadores carecen de herramientas ligeras, reproducibles y de rápida ejecución para calentar sus reflejos y mejorar su precisión antes de iniciar sesiones de juegos competitivos.
+**Usuarios:** Jugadores de videojuegos (*gamers*) y entusiastas de los e-sports que buscan mejorar su coordinación ojo-mano y precisión con el ratón.
+**Alcance y Limitaciones:** Una aplicación de escritorio 2D enfocada en la precisión del clic y el tiempo de reacción. No incluye conectividad multijugador ni gráficos 3D complejos.
 
-##  Idea del proyecto
+## 2. Requisitos Funcionales
+1. **Aparición y dinámica de objetivos:** Las dianas deben aparecer dentro de un área jugable delimitada y rebotar matemáticamente en los bordes de la pantalla.
+2. **Sistema de puntuación y métricas:** El sistema debe registrar los disparos totales, aciertos (otorgando puntos según la zona de impacto) y fallos, calculando la precisión exacta del usuario.
+3. **Gestión de estados:** El juego debe permitir la transición fluida entre un Menú Principal, la Partida en curso, un Menú de Pausa (congelando el temporizador) y una Pantalla de Resultados Finales.
 
-Inicialmente se plantearon varias ideas para desarrollar un videojuego en 2D: juego de peleas, juego de plataformas, juego de disparos e incluso un aim trainer.
+## 3. Tecnologías y Herramientas
+* **Lenguaje:** Python 3.10+
+* **Librería principal:** pygame-ce (3.5.8)
+* **Análisis de calidad y seguridad:** Ruff (validación de formato PEP 8) y Snyk (análisis de vulnerabilidades de dependencias).
 
+## 4. Instalación y Ejecución
+1. Clonar el repositorio.
+2. Crear un entorno virtual: `python -m venv venv`
+3. Activar el entorno virtual: 
+   * Windows: `venv\Scripts\activate`
+   * macOS/Linux: `source venv/bin/activate`
+4. Instalar las dependencias: `python -m pip install -r requirements.txt`
+5. Ejecutar el juego: `python main.py`
 
-Después de analizar la complejidad de cada propuesta y el tiempo disponible para el desarrollo, se decidió realizar un **Aim Trainer**, ya que permite crear una experiencia dinámica manteniendo un alcance adecuado para el proyecto.
+## 5. Configuración y Secretos
+Este proyecto lee configuraciones desde variables de entorno. Puedes copiar el archivo `.env.example` y renombrarlo a `.env`. Actualmente, la solución no utiliza contraseñas, tokens ni credenciales sensibles que requieran protección en GitHub Secrets.
 
-Aunque un juego de plataformas podía resultar más sencillo de implementar, el Aim Trainer permite incorporar diferentes **niveles de dificultad, modos de juego y sistemas de puntuación** sin aumentar excesivamente la complejidad del proyecto.
-
-##  Descripción del juego
-
-El juego se basa en una mecánica sencilla: el jugador utilizará el **mouse como medio principal de interacción** y deberá acertar a los diferentes objetivos que aparecerán en pantalla.
-
-Cada objetivo estará dividido en diferentes zonas de puntuación. Por ahora no lo tenemos distribuidos.
-
-El jugador contará con un **tiempo determinado** para conseguir la mayor cantidad de puntos posible.
-
-Al finalizar la partida, se mostrará el **puntaje final** y el jugador podrá:
-
-*  Reiniciar la partida.
-*  Salir del juego.
-
- movimiento.
-* Menor tiempo de reacción.
-* Aparición de objetivos con mayor frecuencia.
-
-
-## 🏆 Sistema de puntuación
-
-El prototipo contará con un sistema de puntuación basado principalmente en la **precisión del jugador**.
-
-La puntuación dependerá de la zona del objetivo donde se realice el impacto. Los aciertos más cercanos al centro otorgarán una mayor cantidad de puntos.
-
-En futuras versiones, el sistema podría ampliarse para incluir:
-
-* Combos.
-* Porcentaje de precisión.
-* Cantidad de aciertos.
-* Cantidad de objetivos fallados.
-* Tiempo promedio de reacción.
-* Estadísticas de la partida.
-
-##  Objetivos del proyecto
-
-### Objetivo general
-
-Desarrollar un videojuego 2D de entrenamiento de precisión y reflejos utilizando **Python y Pygame**.
-
-### Objetivos específicos
-
-* Mejorar la capacidad de reacción del jugador mediante la interacción constante con objetivos visuales.
-* Desarrollar una mecánica de juego sencilla, dinámica e interactiva.
-* Implementar un sistema de puntuación basado en la precisión.
-* Incorporar diferentes niveles de dificultad.
-* Permitir al usuario interactuar con el juego mediante el mouse.
-* Aplicar conceptos de desarrollo de software durante la planificación, implementación y organización del proyecto.
-* Desarrollar una aplicación que pueda servir como medio de entretenimiento y, potencialmente, como base para otros ejercicios relacionados con la reacción y la precisión.
-
-##  Tecnologías
-
-El proyecto será desarrollado utilizando:
-
-* **Python**
-* **Pygame**
-
-
-
-##  Estado del proyecto
-
-**En desarrollo.**
-
-Actualmente, el proyecto se encuentra en la etapa de **perfeccionando el gameplay y definición de las mecánicas principales**.
-
-Las características descritas en este documento representan la propuesta inicial y podrán modificarse durante el desarrollo, dependiendo del tiempo disponible, las necesidades del proyecto y las decisiones tomadas por el equipo.
-
-##  Equipo de desarrollo
-
+## 6. Equipo de Desarrollo
 * **Oriel Pinilla**
 * **Jhan Sánchez**
 * **Anthony Santamaría**
 * **Steven Batista**
 * **María González**
+
+## 7. Enlaces del Proyecto
+* [Tablero de Seguimiento](https://github.com/users/Thonys14/projects/1)
+* [Documentación del Flujo de Trabajo](docs/flujo_trabajo.md)

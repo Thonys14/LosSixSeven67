@@ -2,6 +2,8 @@ import pygame
 import os
 
 class MenuPrincipal:
+    """Gestiona la renderización y los eventos del menú de inicio del juego."""
+
     def __init__(self,ancho,alto,directorio_base):
         self.ancho = ancho      #espacio de la clase en pantalla
         self.ancho= alto
@@ -58,7 +60,7 @@ class MenuPrincipal:
 
     def dibujar(self,pantalla):
         #Fondo oscuro porque no hay presupuesto (se agregará un fondito, calma, primero lo esencial).
-        pantalla.fill((15,20,30))
+        pantalla.fill((10,18,32))
 
         #obtener el rectangulo exacto de la pantalla actual
         rect_pantalla = pantalla.get_rect()
@@ -179,6 +181,8 @@ class MenuPausa:
         return None
 
 class MenuResultados:
+
+    """Desglosa las estadísticas de rendimiento (aciertos, fallos, precisión) al finalizar el temporizador."""
     def __init__(self, ancho, alto, directorio_base):
         self.ancho = ancho
         self.alto = alto
@@ -209,7 +213,7 @@ class MenuResultados:
 
     def dibujar(self, pantalla, stats):
         # Fondo oscuro
-        pantalla.fill((10, 15, 25))
+        pantalla.fill((10, 18, 32))
 
         # Panel principal y borde azul
         pygame.draw.rect(pantalla, (15, 25, 40), self.rect_panel, border_radius=8)
