@@ -14,9 +14,6 @@ class Diana:
     def __init__(self, ancho_pantalla, alto_pantalla, sprite_centro=None):
         self.radio = 40
         self.ancho = ancho_pantalla
-        # Espacio para el HUD superior y el personaje inferior.
-        x = random.randint(self.radio, ancho_pantalla - self.radio)
-        y = random.randint(75 + self.radio, alto_pantalla - 125 - self.radio)
 
         #area exclusivamente para aparición de dianas
         self.limite_techo = 180 # justo debajo de las luces del bg

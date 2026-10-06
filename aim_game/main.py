@@ -1,17 +1,18 @@
 """Módulo principal que inicializa el bucle del juego, renderiza entidades y controla la máquina de estados."""
 
-import pygame
-import sys
 import os
+import sys
 
-from src.ui.menu import MenuPrincipal, MenuPausa, MenuResultados 
-from src.player.shooter import Crosshair 
-from src.targets.rings import Diana 
-from src.player.character import Personaje
+import pygame
 from src.effects.feedback import EfectosVisuales
-from src.ui.window_controls import ControlesVentana
-from src.ui.intro import IntroPartida
 from src.game.settings import GestorConfiguracion
+from src.player.character import Personaje
+from src.player.shooter import Crosshair
+from src.targets.rings import Diana
+from src.ui.intro import IntroPartida
+from src.ui.menu import MenuPausa, MenuPrincipal, MenuResultados
+from src.ui.window_controls import ControlesVentana
+
 
 def main():
     # (evita errores de audio en windows -_-)
@@ -40,7 +41,7 @@ def main():
         sonido_disparo = pygame.mixer.Sound(config.ruta_sonido_disparo)
         sonido_acierto = pygame.mixer.Sound(config.ruta_sonido_acierto)
         config.aplicar_volumen_sfx([sonido_fin, sonido_disparo, sonido_acierto])
-    except Exception:
+    except (pygame.error, FileNotFoundError):
         sonido_fin = sonido_disparo = sonido_acierto = None
 
     #display
@@ -91,8 +92,8 @@ def main():
     try:
         fondo = pygame.image.load(config.ruta_fondo).convert()
         fondo = pygame.transform.scale(fondo, (config.ancho, config.alto))
-    except Exception:
-        print(f"Error: No se encontró la imagen de fondo")
+    except (pygame.error, FileNotFoundError):
+        print("Error: No se encontró la imagen de fondo")
         fondo = pygame.Surface((config.ancho, config.alto))
         fondo.fill((20, 30, 40))
 
@@ -120,7 +121,7 @@ def main():
                 try:
                     pygame.mixer.music.load(config.ruta_musica_juego)
                     pygame.mixer.music.play(-1)
-                except Exception as e:
+                except (pygame.error, FileNotFoundError) as e:
                     print(f"Error reproduciendo música: {e}")
 
         if estado_actual == "JUEGO":
@@ -163,8 +164,8 @@ def main():
                         try:
                             pygame.mixer.music.load(config.ruta_musica_lobby)
                             pygame.mixer.music.play(-1)
-                        except Exception:
-                            pass
+                        except pygame.error as e:
+                            print(f"Advertencia de Pygame: {e}")
 
                 elif evento.key == pygame.K_SPACE and estado_actual == "CINEMATICA":
                     estado_actual = "JUEGO"
@@ -173,16 +174,12 @@ def main():
                     try:
                         pygame.mixer.music.load(config.ruta_musica_juego)
                         pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    except (pygame.error,FileNotFoundError) as e:
+                        print(f"Advertencia de Pygame: {e}")
         
             #evento de clic in-game
-            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                if (
-                    estado_actual == "JUEGO"
-                    and diana_actual is not None
-                    and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000
-                ):
+            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1 and estado_actual == "JUEGO" and diana_actual is not None and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000:
+
                     if sonido_disparo:
                         sonido_disparo.play()
                         
@@ -231,8 +228,8 @@ def main():
                     try:
                         pygame.mixer.music.load(config.ruta_musica_lobby)
                         pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    except pygame.error as e:
+                        print(f"Advertencia de Pygame: {e}")
 
             if estado_actual == "RESULTADOS":
                 accion_resultados = menu_resultados.manejar_evento(evento)
@@ -246,8 +243,8 @@ def main():
                     try:
                         pygame.mixer.music.load(config.ruta_musica_juego)
                         pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    except pygame.error as e:
+                        print(f"Advertencia de Pygame: {e}")
                         
                 elif accion_resultados == "SALIR":
                     estado_actual = "MENU"
@@ -258,8 +255,8 @@ def main():
                     try:
                         pygame.mixer.music.load(config.ruta_musica_lobby)
                         pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    except pygame.error as e:
+                        print(f"Advertencia de Pygame: {e}")
 
         # renderizado en pantalla
         if estado_actual == "MENU":

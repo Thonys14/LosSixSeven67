@@ -1,7 +1,9 @@
 """Módulo que centraliza las configuraciones globales, rutas de recursos y gestión de estados del entorno."""
 
 import os
+
 import pygame
+
 
 class GestorConfiguracion:
 
@@ -55,7 +57,7 @@ class GestorConfiguracion:
             img_cursor = pygame.transform.scale(img_cursor, (32, 32))
             #  (el centro)
             self.cursor_menu = pygame.cursors.Cursor((12, 12), img_cursor)
-        except Exception:
+        except (pygame.error, FileNotFoundError):
             # si no aparece una cualquiera en su lugar
             print(f"no aparecio el cursor nuevo ruta: {self.ruta_cursor_menu}" )
             self.cursor_menu = pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_CROSSHAIR)

@@ -2,7 +2,6 @@
 
 import pygame
 
-
 COLORES_PUNTOS = {
     100: (255, 225, 80),
     75: (255, 170, 65),

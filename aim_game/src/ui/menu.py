@@ -1,5 +1,7 @@
-import pygame
 import os
+
+import pygame
+
 
 class MenuPrincipal:
     """Gestiona la renderización y los eventos del menú de inicio del juego."""
@@ -40,14 +42,14 @@ class MenuPrincipal:
             pygame.mixer.music.load(ruta_musica_lobby)
             pygame.mixer.music.play(-1) # El -1 la reproduce en bucle infinito
             pygame.mixer.music.set_volume(0.6) # Ajusta el volumen si la música es muy fuerte
-        except Exception as e:
+        except (pygame.error, FileNotFoundError) as e:
             print(f"Error cargando música del menú: {e}")
 
         # [NUEVO AUDIO] Cargar el efecto de sonido para los botones
         try:
             self.sonido_boton = pygame.mixer.Sound(ruta_sonido_boton)
             self.sonido_boton.set_volume(1.0)
-        except Exception as e:
+        except (pygame.error, FileNotFoundError) as e:
             print(f"Error cargando sonido de botón: {e}")
             self.sonido_boton = None
 
@@ -55,8 +57,8 @@ class MenuPrincipal:
         # [NUEVO AUDIO] Método de apoyo por si necesitas reiniciar la música del menú luego de jugar
         try:
             pygame.mixer.music.play(-1)
-        except Exception:
-            pass
+        except (pygame.error, FileNotFoundError) as e:
+            print(f"Error: {e}")
 
     def dibujar(self,pantalla):
         #Fondo oscuro porque no hay presupuesto (se agregará un fondito, calma, primero lo esencial).
@@ -136,7 +138,7 @@ class MenuPausa:
         ruta_sonido_boton = os.path.join(directorio_base, "sounds", "ui_effect.wav")
         try:
             self.sonido_boton = pygame.mixer.Sound(ruta_sonido_boton)
-        except Exception:
+        except (pygame.error, FileNotFoundError):
             self.sonido_boton = None
 
     def dibujar(self, pantalla):
@@ -208,7 +210,7 @@ class MenuResultados:
         ruta_sonido_boton = os.path.join(directorio_base, "sounds", "ui_effect.wav")
         try:
             self.sonido_boton = pygame.mixer.Sound(ruta_sonido_boton)
-        except Exception:
+        except (pygame.error, FileNotFoundError):
             self.sonido_boton = None
 
     def dibujar(self, pantalla, stats):
