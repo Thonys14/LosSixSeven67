@@ -28,11 +28,12 @@
 Este proyecto lee configuraciones desde variables de entorno. Puedes copiar el archivo `.env.example` y renombrarlo a `.env`. Actualmente, la solución no utiliza contraseñas, tokens ni credenciales sensibles que requieran protección en GitHub Secrets.
 
 ## 6. Equipo de Desarrollo
-* **Oriel Pinilla**
-* **Jhan Sánchez**
-* **Anthony Santamaría**
-* **Steven Batista**
-* **María González**
+* **Oriel Pinilla [Supervisor de desarrollo, Dev]**
+* **Jhan Sánchez [Supervisor general, Dev y Control de Calidad]**
+* **Anthony Santamaría [Supervisor de Sonido, Host]**
+* **Steven Batista [Desarrollador in-game]** 
+* **Steephen Lascano [Diseñador gráfico]**
+* **María González [Control de versiones, repositorio y documentación]**
 
 ## 7. Enlaces del Proyecto
 * [Tablero de Seguimiento](https://github.com/users/Thonys14/projects/1)
