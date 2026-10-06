@@ -1,6 +1,8 @@
 import os
 
 import pygame
+from src.modes import MODOS
+from src.targets.dificultad import DIFICULTADES
 
 
 class MenuPrincipal:
@@ -30,8 +32,12 @@ class MenuPrincipal:
             print("No se ha encontrado el logo.png")
             self.logo = None
 
-        self.rect_play = pygame.Rect(self.ancho//2 - 100, 380, 200, 60)
-        self.rect_quit = pygame.Rect(self.ancho//2 - 100, 460, 200, 60)
+        self.rect_play = pygame.Rect(0, 0, 200, 46)
+        self.rect_modo = pygame.Rect(0, 0, 400, 46)
+        self.rect_dificultad = pygame.Rect(0, 0, 400, 46)
+        self.rect_quit = pygame.Rect(0, 0, 200, 46)
+        self.indice_modo = 0        # primer modo de la lista por defecto
+        self.indice_dificultad = 1  # MEDIO por defecto
 
         # [NUEVO AUDIO] Rutas de los sonidos usando la carpeta assets
         ruta_musica_lobby = os.path.join(directorio_base, "sounds", "lobby_song.mp3")
@@ -53,12 +59,22 @@ class MenuPrincipal:
             print(f"Error cargando sonido de botón: {e}")
             self.sonido_boton = None
 
+    @property
+    def modo_actual(self):
+        """Clase del modo de juego seleccionado actualmente en el menú."""
+        return MODOS[self.indice_modo]
+
+    @property
+    def dificultad_actual(self):
+        """Dificultad seleccionada actualmente en el menú."""
+        return DIFICULTADES[self.indice_dificultad]
+
     def reproducir_musica_fondo(self):
         # [NUEVO AUDIO] Método de apoyo por si necesitas reiniciar la música del menú luego de jugar
         try:
             pygame.mixer.music.play(-1)
-        except (pygame.error, FileNotFoundError) as e:
-            print(f"Error: {e}")
+        except (pygame.error):
+            print("Aviso: No se pudo reproducir el audio.")
 
     def dibujar(self,pantalla):
         #Fondo oscuro porque no hay presupuesto (se agregará un fondito, calma, primero lo esencial).
@@ -72,13 +88,17 @@ class MenuPrincipal:
             pantalla.blit(self.logo, rect_logo)
 
         #matemáticamente centrados
-        self.rect_play.center = (rect_pantalla.centerx, 420)
-        self.rect_quit.center = (rect_pantalla.centerx, 495)
+        self.rect_play.center = (rect_pantalla.centerx, 380)
+        self.rect_modo.center = (rect_pantalla.centerx, 435)
+        self.rect_dificultad.center = (rect_pantalla.centerx, 490)
+        self.rect_quit.center = (rect_pantalla.centerx, 545)
 
         mouse_pos = pygame.mouse.get_pos()
 
         botones = [
             (self.rect_play, "JUGAR"),
+            (self.rect_modo, f"MODO: {self.modo_actual.nombre}"),
+            (self.rect_dificultad, f"NIVEL: {self.dificultad_actual.nombre}"),
             (self.rect_quit, "SALIR")
         ]
 
@@ -104,6 +124,20 @@ class MenuPrincipal:
                 if self.sonido_boton:
                     self.sonido_boton.play()
                 return "JUGAR"
+            elif self.rect_modo.collidepoint(evento.pos):
+                # cada clic cambia al siguiente modo de juego
+                if self.sonido_boton:
+                    self.sonido_boton.play()
+                self.indice_modo = (self.indice_modo + 1) % len(MODOS)
+                return None
+            elif self.rect_dificultad.collidepoint(evento.pos):
+                # cada clic cambia al siguiente nivel de dificultad
+                if self.sonido_boton:
+                    self.sonido_boton.play()
+                self.indice_dificultad = (
+                    self.indice_dificultad + 1
+                ) % len(DIFICULTADES)
+                return None
             elif self.rect_quit.collidepoint(evento.pos):
                 # [AUDIO] Reproducir sonido de interfaz
                 if self.sonido_boton:
@@ -221,8 +255,9 @@ class MenuResultados:
         pygame.draw.rect(pantalla, (15, 25, 40), self.rect_panel, border_radius=8)
         pygame.draw.rect(pantalla, (45, 85, 140), self.rect_panel, width=2, border_radius=8)
 
-        # Textos superiores
-        txt_titulo = self.fuente_titulo.render("PARTIDA TERMINADA", True, (255, 255, 255))
+        # Textos superiores (el modo puede traer su propio mensaje de fin)
+        titulo = stats.get('mensaje', "PARTIDA TERMINADA").upper()
+        txt_titulo = self.fuente_titulo.render(titulo, True, (255, 255, 255))
         pantalla.blit(txt_titulo, txt_titulo.get_rect(center=(self.ancho // 2, self.rect_panel.top + 40)))
 
         txt_sub = self.fuente_texto.render("PUNTUACIÓN FINAL", True, (150, 200, 255))

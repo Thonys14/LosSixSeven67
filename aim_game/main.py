@@ -8,7 +8,6 @@ from src.effects.feedback import EfectosVisuales
 from src.game.settings import GestorConfiguracion
 from src.player.character import Personaje
 from src.player.shooter import Crosshair
-from src.targets.rings import Diana
 from src.ui.intro import IntroPartida
 from src.ui.menu import MenuPausa, MenuPrincipal, MenuResultados
 from src.ui.window_controls import ControlesVentana
@@ -86,19 +85,32 @@ def main():
         imagen_crosshair = None
 
     jugador = Crosshair(imagen_crosshair)
-    diana_actual = None
 
-    #bg in-game
+    #bg in-game: cada modo elige su fondo ("almacen" es el de config, "espacial" el nuevo)
     try:
-        fondo = pygame.image.load(config.ruta_fondo).convert()
-        fondo = pygame.transform.scale(fondo, (config.ancho, config.alto))
+        fondo_almacen = pygame.image.load(config.ruta_fondo).convert()
+        fondo_almacen = pygame.transform.scale(fondo_almacen, (config.ancho, config.alto))
     except (pygame.error, FileNotFoundError):
         print("Error: No se encontró la imagen de fondo")
-        fondo = pygame.Surface((config.ancho, config.alto))
-        fondo.fill((20, 30, 40))
+        fondo_almacen = pygame.Surface((config.ancho, config.alto))
+        fondo_almacen.fill((20, 30, 40))
+
+    fondo_espacial = fondo_almacen #si falta fondo_espacial.png se usa el del almacén
+    ruta_fondo_espacial = os.path.join(directorio_base, "assets", "gfx", "fondo_espacial.png")
+    try:
+        espacio = pygame.image.load(ruta_fondo_espacial).convert()
+        lado = max(config.ancho, config.alto)
+        espacio = pygame.transform.scale(espacio, (lado, lado))
+        candidato = pygame.Surface((config.ancho, config.alto))
+        candidato.blit(espacio, (-(lado - config.ancho) // 2, -(lado - config.alto) // 2))
+        fondo_espacial = candidato
+    except (FileNotFoundError, pygame.error):
+        print("No se encontró assets/gfx/fondo_espacial.png")
+    fondos = {"almacen": fondo_almacen, "espacial": fondo_espacial}
 
     # variables de partida
-    puntuacion_temporal = 0
+    modo = None #modo de juego en curso (se crea al pulsar JUGAR)
+    segundos_jugados = None #solo se usa si el modo termina antes del tiempo
     disparos_totales = 0
     aciertos = 0 
     fallos = 0
@@ -121,7 +133,7 @@ def main():
                 try:
                     pygame.mixer.music.load(config.ruta_musica_juego)
                     pygame.mixer.music.play(-1)
-                except (pygame.error, FileNotFoundError) as e:
+                except (pygame.error,FileNotFoundError) as e:
                     print(f"Error reproduciendo música: {e}")
 
         if estado_actual == "JUEGO":
@@ -157,15 +169,16 @@ def main():
                         tiempo_inicio += pygame.time.get_ticks() - tiempo_inicio_pausa
                     elif estado_actual == "RESULTADOS":
                         estado_actual = "MENU"
-                        puntuacion_temporal = disparos_totales = aciertos = fallos = 0
-                        diana_actual = None
+                        disparos_totales = aciertos = fallos = 0
+                        modo = None
+                        segundos_jugados = None
                         efectos.limpiar()
                         pygame.mixer.music.stop()
                         try:
                             pygame.mixer.music.load(config.ruta_musica_lobby)
                             pygame.mixer.music.play(-1)
-                        except pygame.error as e:
-                            print(f"Advertencia de Pygame: {e}")
+                        except (pygame.error,FileNotFoundError) as e:
+                            print(f"Advertencia de pygame: {e}")
 
                 elif evento.key == pygame.K_SPACE and estado_actual == "CINEMATICA":
                     estado_actual = "JUEGO"
@@ -174,33 +187,24 @@ def main():
                     try:
                         pygame.mixer.music.load(config.ruta_musica_juego)
                         pygame.mixer.music.play(-1)
-                    except (pygame.error,FileNotFoundError) as e:
-                        print(f"Advertencia de Pygame: {e}")
+                    except (pygame.error, FileNotFoundError) as e:
+                        print(f"Advertencia de pygame: {e}")
         
             #evento de clic in-game
-            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1 and estado_actual == "JUEGO" and diana_actual is not None and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000:
-
+            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1 and estado_actual == "JUEGO" and pygame.time.get_ticks() - tiempo_inicio < tiempo_limite * 1000:
                     if sonido_disparo:
                         sonido_disparo.play()
                         
                     personaje.disparar()
-                    efectos.disparar(personaje.origen_disparo, evento.pos)
+                    efectos.disparar(modo.origen_disparo(personaje), evento.pos)
                     disparos_totales += 1 
-                    puntos = 0
 
-                    if diana_actual.esta_visible:
-                        puntos = jugador.disparar(
-                            diana_actual.posicion, diana_actual.radio, evento.pos
-                        )
+                    #el modo decide los puntos (>0 acierto, 0 fallo, <0 penalización)
+                    puntos = modo.procesar_clic(evento.pos, efectos)
                     if puntos > 0:
                         aciertos += 1 
-                        puntuacion_temporal += puntos
-                        efectos.registrar_acierto(diana_actual, evento.pos, puntos)
-                        
                         if sonido_acierto:
                             sonido_acierto.play()
-
-                        diana_actual = Diana(config.ancho, config.alto)
                     else:
                         fallos += 1 
         
@@ -208,6 +212,13 @@ def main():
             if estado_actual == "MENU":
                 accion = menu_principal.manejar_evento(evento)
                 if accion == "JUGAR":
+                    #se crea el modo elegido con la dificultad elegida
+                    modo = menu_principal.modo_actual(
+                        config.ancho, config.alto, menu_principal.dificultad_actual,
+                        fuente_ui, personaje.imagen,
+                    )
+                    tiempo_limite = modo.duracion
+                    segundos_jugados = None
                     intro.reiniciar()
                     estado_actual = "CINEMATICA"
                 elif accion == "SALIR":
@@ -221,41 +232,44 @@ def main():
                     tiempo_inicio += pygame.time.get_ticks() - tiempo_inicio_pausa
                 elif accion_pausa == "SALIR_MENU":
                     estado_actual = "MENU"
-                    puntuacion_temporal = disparos_totales = aciertos = fallos = 0
-                    diana_actual = None
+                    disparos_totales = aciertos = fallos = 0
+                    modo = None
+                    segundos_jugados = None
                     efectos.limpiar()
                     pygame.mixer.music.stop()
                     try:
                         pygame.mixer.music.load(config.ruta_musica_lobby)
                         pygame.mixer.music.play(-1)
-                    except pygame.error as e:
-                        print(f"Advertencia de Pygame: {e}")
+                    except (pygame.error, FileNotFoundError) as e:
+                        print(f"Advertencia de pygame {e}")
 
             if estado_actual == "RESULTADOS":
                 accion_resultados = menu_resultados.manejar_evento(evento)
                 if accion_resultados == "REINICIAR":
                     estado_actual = "JUEGO"
-                    puntuacion_temporal = disparos_totales = aciertos = fallos = 0
+                    disparos_totales = aciertos = fallos = 0
+                    modo.iniciar()
+                    segundos_jugados = None
                     tiempo_inicio = pygame.time.get_ticks()
-                    diana_actual = None
                     efectos.limpiar()
                     pygame.mixer.music.stop()
                     try:
                         pygame.mixer.music.load(config.ruta_musica_juego)
                         pygame.mixer.music.play(-1)
-                    except pygame.error as e:
+                    except (pygame.error, FileNotFoundError) as e:
                         print(f"Advertencia de Pygame: {e}")
                         
                 elif accion_resultados == "SALIR":
                     estado_actual = "MENU"
-                    puntuacion_temporal = disparos_totales = aciertos = fallos = 0
-                    diana_actual = None
+                    disparos_totales = aciertos = fallos = 0
+                    modo = None
+                    segundos_jugados = None
                     efectos.limpiar()
                     pygame.mixer.music.stop()
                     try:
                         pygame.mixer.music.load(config.ruta_musica_lobby)
                         pygame.mixer.music.play(-1)
-                    except pygame.error as e:
+                    except (pygame.error, FileNotFoundError) as e:
                         print(f"Advertencia de Pygame: {e}")
 
         # renderizado en pantalla
@@ -266,10 +280,7 @@ def main():
             intro.dibujar(pantalla)
         
         elif estado_actual == "JUEGO":
-            if fondo is None:
-                pantalla.fill((20, 30, 40))
-            else:
-                pantalla.blit(fondo, (0, 0))
+            pantalla.blit(fondos[modo.fondo], (0, 0))
 
             tiempo_actual = pygame.time.get_ticks()
             segundos_transcurridos = (tiempo_actual - tiempo_inicio) // 1000
@@ -281,17 +292,23 @@ def main():
                 pygame.mixer.music.stop()
                 if sonido_fin: sonido_fin.play()
 
-            if diana_actual is None:
-                diana_actual = Diana(config.ancho, config.alto)
+            #el modo actualiza su lógica (movimiento, balas, rondas...)
+            modo.actualizar(dt, pygame.key.get_pressed())
+            if modo.terminado and estado_actual == "JUEGO":
+                estado_actual = "RESULTADOS"
+                segundos_jugados = (pygame.time.get_ticks() - tiempo_inicio) // 1000
+                efectos.limpiar()
+                pygame.mixer.music.stop()
+                if sonido_fin: sonido_fin.play()
             
             efectos.dibujar_dianas_salientes(pantalla)
-            diana_actual.actualizar(dt)
-            diana_actual.dibujar(pantalla)
-            personaje.dibujar(pantalla)
+            modo.dibujar(pantalla)
+            if modo.dibuja_personaje:
+                personaje.dibujar(pantalla)
             efectos.dibujar(pantalla)
 
-            texto_puntos_sombra = fuente_ui.render(f"Puntos: {puntuacion_temporal}", True, (0, 0, 0))
-            texto_puntos = fuente_ui.render (f"Puntos: {puntuacion_temporal}", True, (255,255,255))
+            texto_puntos_sombra = fuente_ui.render(f"Puntos: {modo.puntos}", True, (0, 0, 0))
+            texto_puntos = fuente_ui.render (f"Puntos: {modo.puntos}", True, (255,255,255))
             pantalla.blit(texto_puntos_sombra, (22, 22)) 
             pantalla.blit(texto_puntos, (20, 20))
 
@@ -310,26 +327,28 @@ def main():
 
         elif estado_actual == "RESULTADOS":
             precision = int((aciertos / disparos_totales) * 100) if disparos_totales > 0 else 0
-            minutos = tiempo_limite // 60
-            segundos = tiempo_limite % 60
+            segundos_totales = segundos_jugados if segundos_jugados is not None else tiempo_limite
+            minutos = segundos_totales // 60
+            segundos = segundos_totales % 60
             tiempo_formateado = f"{minutos:02d}:{segundos:02d}"
 
             stats_partida = {
-                'puntuacion': puntuacion_temporal,
+                'puntuacion': modo.puntos,
                 'tiempo': tiempo_formateado,
                 'aciertos': aciertos,
                 'fallos': fallos,
-                'precision': precision
+                'precision': precision,
+                'mensaje': modo.mensaje_final or "PARTIDA TERMINADA",
             }
             menu_resultados.dibujar(pantalla, stats_partida)
 
         elif estado_actual == "PAUSA":
-            if fondo is None: pantalla.fill((20, 30, 40))
-            else: pantalla.blit(fondo, (0, 0))
+            pantalla.blit(fondos[modo.fondo], (0, 0))
             
             efectos.dibujar_dianas_salientes(pantalla)
-            if diana_actual: diana_actual.dibujar(pantalla)
-            personaje.dibujar(pantalla)
+            modo.dibujar(pantalla)
+            if modo.dibuja_personaje:
+                personaje.dibujar(pantalla)
             efectos.dibujar(pantalla)
 
             velo = pygame.Surface((config.ancho, config.alto), pygame.SRCALPHA)

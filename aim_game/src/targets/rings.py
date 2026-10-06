@@ -75,9 +75,13 @@ class Diana:
         return round(255 * avance)
 
     def iniciar_salida(self):
-        """Conserva su opacidad actual para que el desvanecimiento sea continuo."""
-        self.opacidad_salida = self.opacidad
-        self.tiempo_salida = 0.0
+        """Elimina la diana instatáneamente sin animación ni movimiento."""
+        #1. Fuerza a que la propiedad 'terminado' sea True inmediatamente
+        self.tiempo_salida = self.DURACION_SALIDA
+        self.opacidad_salida = 0
+
+        self.vel_x = 0
+        self.vel_y = 0
 
     def actualizar(self, dt):
         if self.tiempo_salida is None:
